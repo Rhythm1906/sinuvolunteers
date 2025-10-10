@@ -1,0 +1,12 @@
+n8n is an automation tool used to design applications and tasks without having much knowledge about coding. n8n works on the concept of 'nodes', which are like the working blocks of n8n. 
+- Trigger nodes refers to the nodes that initiate the automation when a specific event occurs (like a new message in a chat or a scheduled time).
+- Action Nodes mean that what will the blocks actually do when the event is triggered.
+
+The nodes are connected/linked to each other to create the flow of automation. The output of one node becomes the input for the next, allowing you to pass data between different applications and services.
+
+- n8n provides a user friendly drag-and-drop interface for building the workspaces. We can connect nodes and configure them and set it up without writing any code.
+- it also offers the flexibility to add custom JS code for customized workspace
+- it also supports integrations like Slack, Discord, Telegram, MySQL, Drive, etc.
+- it also supports hosting, as in you can host any workspace we made on the website
+
+it is mainly used for making bots, repetitive tasks, custom integrations and ai powered tasks
