@@ -1,0 +1,944 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-w›idth, initial-scale=1.0">
+    <title>FlightDeck | An Aviation Journey</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom styles to complement Tailwind */
+        @keyframes move-clouds {
+            from { background-position: 0 0; }
+            to { background-position: -10000px 0; }
+        }
+        @keyframes hud-glow {
+            0%, 100% { text-shadow: 0 0 5px #00d9ff, 0 0 10px #00d9ff; }
+            50% { text-shadow: 0 0 10px #00d9ff, 0 0 20px #00d9ff; }
+        }
+        @keyframes blink {
+            0%, 100% { fill: red; }
+            50% { fill: #ff6b6b; }
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            overflow: hidden; /* Hide scrollbars during entry animation */
+            background-color: #a0d2eb; /* Fallback sky blue */
+        }
+
+        /* This new wrapper isolates the parallax transform from the fixed-position modal */
+        #page-wrapper {
+            background-color: #a0d2eb; /* Sky blue */
+            background-image: url('https://www.transparenttextures.com/patterns/simple-cloudy.png');
+            animation: move-clouds 600s linear infinite; /* Add cloud animation */
+            /* REMOVED transform transition to fix position:fixed issue */
+            width: 100%;
+            height: 100vh;
+            position: relative;
+        }
+
+        /* The main airplane fuselage */
+        #airplane-fuselage {
+            /* New background for a metallic look with panel lines */
+            background-color: #f8f9fa;
+            background-image: 
+                repeating-linear-gradient(0deg, transparent, transparent 199px, rgba(0,0,0,0.1) 200px, transparent 201px),
+                linear-gradient(to right, #e9ecef, #f8f9fa, #e9ecef);
+            background-size: 100% 200px, 100% 100%;
+
+            width: 100%;
+            /* THIS IS THE KEY FIX: Changed from absolute to relative */
+            position: relative; 
+            /* Removed top positioning used for the old, broken animation */
+            transition: transform 0.2s ease-out;
+            box-shadow: -20px 0px 50px rgba(0,0,0,0.2);
+        }
+
+        /* Styling for the airplane windows */
+        .plane-window {
+            width: 90%;
+            max-width: 500px;
+            height: 450px;
+            margin: 15vh auto;
+            border: 10px solid #adb5bd;
+            background-color: rgba(255, 255, 255, 0.1);
+            /* Add rivet effect */
+            background-image: 
+                radial-gradient(circle at 15px 15px, #cdd1d4 1px, transparent 2px),
+                radial-gradient(circle at calc(100% - 15px) 15px, #cdd1d4 1px, transparent 2px),
+                radial-gradient(circle at 15px calc(100% - 15px), #cdd1d4 1px, transparent 2px),
+                radial-gradient(circle at calc(100% - 15px) calc(100% - 15px), #cdd1d4 1px, transparent 2px);
+            background-repeat: no-repeat;
+            border-radius: 40px 40px 80px 80px / 40px 40px 60px 60px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.2), 0 0 10px rgba(0,0,0,0.3);
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(50px) rotateX(-10deg); /* Initial tilt */
+            transition: opacity 1s ease-out, transform 1s ease-out, box-shadow 0.3s ease;
+            cursor: pointer; /* Indicate it's clickable */
+        }
+
+        .plane-window:hover {
+            transform: translateY(0) scale(1.03) rotateX(0deg); /* Adjust hover effect */
+            box-shadow: inset 0 0 20px rgba(255,255,255,0.5), 0 0 25px rgba(0, 145, 173, 0.5); /* Add a glow */
+        }
+        
+        .plane-window.visible {
+            opacity: 1;
+            transform: translateY(0) rotateX(0deg); /* Animate to straight on view */
+        }
+
+        /* The blurred content pane inside the window */
+        .window-content {
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            height: 90%;
+            width: 90%;
+            border-radius: 30px 30px 60px 60px / 30px 30px 50px 50px;
+            padding: 2rem;
+            overflow-y: auto;
+            text-align: center;
+            transition: opacity 0.3s ease;
+        }
+
+        /* The interactive door section */
+        #door-section {
+            perspective: 1500px;
+        }
+
+        #door {
+            width: 90%;
+            max-width: 400px;
+            height: 600px;
+            border: 8px solid #6c757d;
+            background-color: #e9ecef;
+            /* Add rivets to door */
+            background-image:
+                radial-gradient(circle at 12px 12px, #cdd1d4 1px, transparent 2px), radial-gradient(circle at calc(100% - 12px) 12px, #cdd1d4 1px, transparent 2px),
+                radial-gradient(circle at 12px calc(100% - 12px), #cdd1d4 1px, transparent 2px), radial-gradient(circle at calc(100% - 12px) calc(100% - 12px), #cdd1d4 1px, transparent 2px),
+                radial-gradient(circle at 12px 50%, #cdd1d4 1px, transparent 2px), radial-gradient(circle at calc(100% - 12px) 50%, #cdd1d4 1px, transparent 2px);
+            background-repeat: no-repeat;
+            border-radius: 40px;
+            margin: 20vh auto;
+            cursor: pointer;
+            transform-style: preserve-3d;
+            transition: transform 1s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            position: relative; /* For placard positioning */
+            box-shadow: 10px 10px 30px rgba(0,0,0,0.2);
+            opacity: 0;
+            transform: translateY(50px);
+        }
+
+        .door-placard {
+            position: absolute;
+            background: #f1c40f;
+            color: black;
+            padding: 2px 8px;
+            font-size: 10px;
+            font-weight: bold;
+            border: 1px solid black;
+            text-transform: uppercase;
+        }
+        
+        #door.visible {
+             opacity: 1;
+            transform: translateY(0);
+        }
+
+        #door.open {
+            transform: rotateY(-110deg);
+        }
+        
+        .door-window {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background-color: #343a40;
+            border: 5px solid #adb5bd;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+        }
+
+        /* The hidden "About Us" content */
+        #about-us-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 80%;
+            max-width: 600px;
+            padding: 2rem;
+            background: #fff;
+            border-radius: 1rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease 0.5s;
+        }
+
+        #door-section.reveal #about-us-content {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        
+        /* The entry gate / login screen */
+        #entry-gate {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #2c3e50;
+            transition: top 1.5s cubic-bezier(0.77, 0, 0.175, 1);
+            z-index: 100;
+        }
+
+        /* Main scroll container */
+        #main-content {
+            height: 100vh;
+            overflow-y: scroll;
+            scroll-snap-type: y proximity;
+        }
+        
+        .snap-section {
+            scroll-snap-align: center;
+        }
+
+        /* Flight Progress Bar */
+        #flight-progress-container {
+            position: fixed;
+            top: 50%;
+            right: 30px;
+            transform: translateY(-50%);
+            height: 70vh;
+            width: 2px;
+            background-color: rgba(0, 0, 0, 0.2);
+            border-radius: 2px;
+            z-index: 50;
+        }
+
+        #progress-plane {
+            position: absolute;
+            left: 50%;
+            top: 0;
+            transform: translate(-50%, -50%) rotate(180deg); /* Re-added rotation to make it vertical */
+            width: 30px;
+            height: 30px;
+            color: #0056b3;
+            transition: top 0.1s linear;
+        }
+
+        /* Modal Overlay Style - still used for the background blur */
+        #modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(20, 30, 40, 0.5);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+
+        #modal-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        /* New Zoom-in window styles */
+        #zoom-window-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1001;
+            pointer-events: none;
+            overflow: hidden;
+        }
+
+        #zoom-window {
+            position: absolute;
+            background-size: cover;
+            background-position: center;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.5);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            opacity: 0;
+            transform-origin: center center;
+            /* A nice easing function for the zoom */
+            transition: top 0.6s cubic-bezier(0.645, 0.045, 0.355, 1),
+                        left 0.6s cubic-bezier(0.645, 0.045, 0.355, 1),
+                        width 0.6s cubic-bezier(0.645, 0.045, 0.355, 1),
+                        height 0.6s cubic-bezier(0.645, 0.045, 0.355, 1),
+                        border-radius 0.6s cubic-bezier(0.645, 0.045, 0.355, 1),
+                        opacity 0.3s ease;
+        }
+        
+        #zoom-window-image {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 1;
+            border-radius: inherit;
+        }
+        
+        #zoom-content-wrapper {
+            position: relative;
+            z-index: 2;
+            background: linear-gradient(rgba(0,0,0,0.8), rgba(0,0,0,0.5));
+            width: 100%; height: 100%;
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+
+        #zoom-window.visible {
+            pointer-events: auto;
+            opacity: 1;
+        }
+
+        #zoom-content {
+            opacity: 0;
+            transform: translateY(20px);
+            /* Delay the content fade-in until the zoom is nearly complete */
+            transition: opacity 0.4s ease 0.3s, transform 0.4s ease 0.3s;
+            overflow-y: auto;
+            flex-grow: 1;
+            padding-right: 1rem; /* for scrollbar */
+        }
+
+        #zoom-window.content-visible #zoom-content {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        
+        #close-zoom-window {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1.2rem;
+            line-height: 35px;
+            text-align: center;
+            transition: background 0.2s ease, transform 0.2s ease;
+            z-index: 10;
+        }
+        
+        #close-zoom-window:hover {
+            background: rgba(255,255,255,0.4);
+            transform: rotate(90deg);
+        }
+        
+        /* --- Reworked HUD Styles --- */
+        #cockpit-section {
+            background-image: url('https://images.stockcake.com/public/9/3/8/93820034-8969-4299-bb73-84403ffa527b_large/cockpit-night-view-stockcake.jpg');
+            background-size: cover;
+            background-position: center;
+            cursor: pointer;
+            position: relative;
+            perspective: 1500px;
+        }
+        
+        /* Overlay for blur and darkness */
+        #cockpit-section::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(5, 10, 20, 0.8);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transition: opacity 0.8s ease, backdrop-filter 0.8s ease;
+            z-index: 1;
+        }
+        
+        #hud-container {
+            position: relative;
+            z-index: 2;
+            width: 90%;
+            max-width: 800px;
+            transform-style: preserve-3d;
+        }
+        
+        .hud-display {
+            border: 2px solid #00d9ff;
+            padding: 2rem;
+            background: rgba(0, 217, 255, 0.05);
+            color: #00d9ff;
+            font-family: 'Orbitron', sans-serif;
+            text-shadow: 0 0 5px #00d9ff;
+            transform-origin: top center;
+            transition: transform 0.8s cubic-bezier(0.68, -0.55, 0.27, 1.55), opacity 0.5s ease;
+            opacity: 1;
+        }
+
+        /* The Hinges */
+        #hud-container::before, #hud-container::after {
+            content: '';
+            position: absolute;
+            top: -10px;
+            width: 40px;
+            height: 20px;
+            background: #6c757d;
+            border: 2px solid #495057;
+            border-radius: 4px;
+            z-index: 3;
+        }
+        #hud-container::before { left: 10%; }
+        #hud-container::after { right: 10%; }
+
+        
+        /* Flipped state */
+        #cockpit-section.pov-active::before {
+            opacity: 0;
+            backdrop-filter: blur(0px);
+            -webkit-backdrop-filter: blur(0px);
+        }
+        #cockpit-section.pov-active .hud-display {
+            transform: rotateX(-110deg) translateY(-50px);
+            opacity: 0;
+        }
+        
+        .hud-item {
+            animation: hud-glow 2s infinite ease-in-out;
+            letter-spacing: 2px;
+        }
+        .artificial-horizon {
+            width: 100%;
+            height: 2px;
+            background: #00d9ff;
+            margin: 2rem 0;
+            position: relative;
+        }
+        .artificial-horizon::before, .artificial-horizon::after {
+            content: '';
+            position: absolute;
+            height: 20px;
+            width: 2px;
+            background: #00d9ff;
+            top: -9px;
+        }
+        .artificial-horizon::before { left: 20%; }
+        .artificial-horizon::after { right: 20%; }
+        
+        /* New Airport Icon for Scrollbar */
+        #airport-icon {
+            position: absolute;
+            bottom: -15px; /* Position at the end of the line */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 35px;
+            height: 35px;
+            color: #34495e;
+        }
+
+    </style>
+</head>
+<body class="text-gray-800">
+    <div id="page-wrapper">
+        <!-- Entry Gate: The initial form screen -->
+        <div id="entry-gate">
+            <div class="w-full max-w-md p-8 space-y-8 bg-white rounded-2xl shadow-2xl text-center">
+                <div>
+                    <h2 class="text-4xl font-bold text-gray-900">Welcome Aboard!</h2>
+                    <p class="mt-2 text-gray-600">Please prepare for departure.</p>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <label for="username" class="sr-only">Your Name</label>
+                        <input id="username" name="username" type="text" required class="relative block w-full px-3 py-3 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="Your Name">
+                    </div>
+                </div>
+                <div>
+                    <button id="board-button" class="group relative w-full flex justify-center py-3 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-transform transform hover:scale-105">
+                        Board Now
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- This div will handle the main scrolling -->
+        <div id="main-content" style="visibility: hidden;">
+            <!-- The Airplane Fuselage: Main content area -->
+            <div id="airplane-fuselage">
+                <!-- Section 1: Tail/Rudder -->
+                <section class="min-h-screen flex items-center justify-center text-center relative snap-section">
+                    <div class="p-8">
+                        <h1 id="welcome-text" class="text-5xl md:text-7xl font-bold">Welcome Aboard</h1>
+                    </div>
+                </section>
+
+                <!-- Window Sections (10) -->
+                <section class="relative snap-section">
+                    <div class="plane-window" 
+                        data-title="The Dawn of Flight"
+                        data-details="The dream of soaring through the skies is as old as humanity itself. The true turning point came on December 17, 1903, when Orville and Wilbur Wright achieved the first sustained, controlled, powered flight. Their aircraft, the Wright Flyer, traveled just 120 feet in 12 seconds, but it marked the birth of the aviation age. This singular event unlocked the potential for global travel, military air power, and a new perspective on our world, proving that human ingenuity could conquer the air."
+                        data-image="https://www.mansfieldnewsjournal.com/gcdn/media/2021/02/10/USATODAY/usatsports/247WallSt.com-247WS-837078-wright-brothers.jpg"
+                        data-links="[{&quot;text&quot;:&quot;The Wright Brothers - Smithsonian&quot;,&quot;url&quot;:&quot;https://airandspace.si.edu/exhibitions/wright-brothers/online/&quot;}]">
+                        <div class="window-content">
+                            <h3 class="text-2xl font-bold mb-4">The Dawn of Flight</h3>
+                            <p class="text-sm md:text-base">The history of aviation is a tale of human ingenuity, from the early kites to the Wright brothers' first powered flight in 1903. This pivotal moment lasted only 12 seconds but it forever changed our world, shrinking distances and connecting cultures.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="relative snap-section">
+                    <div class="plane-window"
+                        data-title="Safety in the Skies"
+                        data-details="Statistically, flying is the safest way to travel long distances. This incredible safety record is built on a principle of redundancy—every critical system on an aircraft has at least one backup, and often more. Combined with rigorous, mandatory maintenance schedules, advanced avionics that can predict weather and mechanical issues, and exhaustive pilot training in simulators, the modern aviation industry has engineered risk to an absolute minimum, making the skies exceptionally safe for millions of passengers daily. It is a testament to the meticulous procedures that govern every aspect of flight."
+                        data-image="https://www.popsci.com/wp-content/uploads/2023/02/10/rae-galatas-8NqkDS4gNKs-unsplash.jpg?quality=85"
+                        data-links="[{&quot;text&quot;:&quot;Aviation Safety - IATA&quot;,&quot;url&quot;:&quot;https://www.iata.org/en/programs/safety/&quot;}]">
+                        <div class="window-content">
+                            <h3 class="text-2xl font-bold mb-4">Safety in the Skies</h3>
+                            <p class="text-sm md:text-base">Commercial aviation is the safest mode of transportation. This is due to redundant systems, rigorous maintenance, advanced weather prediction, and extensive pilot training in state-of-the-art simulators that can replicate almost any conceivable emergency.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="relative snap-section">
+                    <div class="plane-window"
+                        data-title="Boeing vs. Airbus"
+                        data-details="The commercial aircraft market is famously dominated by two giants: Boeing (USA) and Airbus (Europe). This duopoly creates intense competition, driving innovation in fuel efficiency, passenger comfort, and aerodynamics. Boeing is known for classics like the 747 'Jumbo Jet' and the modern 787 Dreamliner, while Airbus is famous for the A320 family and the A380, the world's largest passenger airliner. Airlines often choose based on fleet commonality, financing, and specific route needs, making their rivalry a key driver of modern aviation progress."
+                        data-image="data:image/jpeg;base64,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"
+                        data-links="[{&quot;text&quot;:&quot;How the Giants Compare - Simple Flying&quot;,&quot;url&quot;:&quot;https://simpleflying.com/boeing-vs-airbus/&quot;}]">
+                        <div class="window-content">
+                            <h3 class="text-2xl font-bold mb-4">Boeing vs. Airbus</h3>
+                            <p class="text-sm md:text-base">The aviation world is dominated by the rivalry between America's Boeing and Europe's Airbus. Their competition has spurred incredible technological advancements, leading to safer, more efficient, and more comfortable air travel for everyone.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="relative snap-section">
+                    <div class="plane-window"
+                        data-title="The Sound Barrier"
+                        data-details="Breaking the sound barrier (Mach 1) was a monumental aviation challenge. As an aircraft approaches the speed of sound, air can no longer move out of the way smoothly, creating shockwaves that cause immense drag and instability. On October 14, 1947, Chuck Yeager, flying the Bell X-1, became the first person to officially break the sound barrier. This achievement paved the way for supersonic military jets and Concorde, the only supersonic passenger jet to date, which could fly from New York to London in under 3.5 hours."
+                        data-image="data:image/jpeg;base64,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"
+                        data-links="[{&quot;text&quot;:&quot;Breaking the Sound Barrier - NASA&quot;,&quot;url&quot;:&quot;https://www.nasa.gov/history/65-years-ago-chuck-yeager-breaks-the-sound-barrier/&quot;}]">
+                        <div class="window-content">
+                            <h3 class="text-2xl font-bold mb-4">The Sound Barrier</h3>
+                            <p class="text-sm md:text-base">In 1947, Chuck Yeager became the first human to fly faster than the speed of sound. 'Breaking the barrier' involves overcoming massive aerodynamic forces and creates a sonic boom. This feat of engineering and courage opened the door for supersonic flight.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="relative snap-section">
+                    <div class="plane-window"
+                        data-title="How Do Planes Fly?"
+                        data-details="The magic of flight comes down to four forces: Lift, Weight, Thrust, and Drag. Thrust, from engines, pushes the plane forward. Drag is air resistance. Weight is gravity. Lift is the upward force from the wings. A wing's curved shape (airfoil) makes air travel faster over the top than the bottom. According to Bernoulli's principle, this faster-moving air creates lower pressure, and the higher pressure below pushes the wing—and the plane—upwards, generating lift and enabling flight."
+                        data-image="https://www.shutterstock.com/image-vector/plane-wing-shape-design-lift-600nw-2155331617.jpg"
+                        data-links="[{&quot;text&quot;:&quot;The Four Forces of Flight - NASA&quot;,&quot;url&quot;:&quot;https://www.grc.nasa.gov/www/k-12/airplane/forces.html&quot;}]">
+                        <div class="window-content">
+                            <h3 class="text-2xl font-bold mb-4">How Do Planes Fly?</h3>
+                            <p class="text-sm md:text-base">It's a balance of four forces: Lift, Weight, Thrust, and Drag. Engines create thrust, while the specially shaped wings (airfoils) generate lift. The wing's design makes air flow faster over the top, creating lower pressure and lifting the aircraft against gravity's pull.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="relative snap-section">
+                    <div class="plane-window"
+                        data-title="Jet Engines Explained"
+                        data-details="A jet engine is a marvel that operates on a simple principle: suck, squeeze, bang, blow. 1) Suck: A fan sucks in huge amounts of air. 2) Squeeze: A compressor with spinning blades squeezes this air, making it dense and hot. 3) Bang: The compressed air is sprayed with fuel and ignited, causing a massive expansion of hot gas. 4) Blow: This gas blasts out the back, generating immense thrust that propels the aircraft forward. It is a controlled, continuous explosion powering flight."
+                        data-image="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRPagl0ueGnWSVhsb1t2vfDV_pps1UluqolDQ&s"
+                        data-links="[{&quot;text&quot;:&quot;How Jet Engines Work - Rolls-Royce&quot;,&quot;url&quot;:&quot;https://www.rolls-royce.com/interactive-stories/how-a-jet-engine-works.aspx&quot;}]">
+                        <div class="window-content">
+                            <h3 class="text-2xl font-bold mb-4">Jet Engines Explained</h3>
+                            <p class="text-sm md:text-base">A jet engine works by taking in air, compressing it, mixing it with fuel, and igniting it. The resulting explosion of hot gas is forced out the back, creating the powerful thrust that pushes the plane forward.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="relative snap-section">
+                    <div class="plane-window"
+                        data-title="The Role of Air Traffic Control"
+                        data-details="Air Traffic Control (ATC) is the invisible force that keeps the skies safe. From control towers to regional centers managing high-altitude flight paths, controllers coordinate thousands of aircraft simultaneously. Using radar, GPS, and radio communication, they ensure planes maintain safe distances, manage takeoffs and landings, and guide pilots around bad weather. It's a high-stakes, high-pressure job that is absolutely essential for the global aviation network to function safely and efficiently."
+                        data-image="https://thumbs.dreamstime.com/b/air-traffic-controllers-monitor-busy-airport-operations-twilight-hours-safety-efficiency-oversee-activities-as-385989356.jpg"
+                        data-links="[{&quot;text&quot;:&quot;Air Traffic Organization - FAA&quot;,&quot;url&quot;:&quot;https://www.faa.gov/air_traffic&quot;}]">
+                        <div class="window-content">
+                            <h3 class="text-2xl font-bold mb-4">Air Traffic Control</h3>
+                            <p class="text-sm md:text-base">Air Traffic Controllers are the guardians of the sky. They use radar and communication systems to orchestrate the movement of thousands of planes, ensuring safe separation and managing takeoffs, landings, and flight paths.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="relative snap-section">
+                    <div class="plane-window"
+                        data-title="Navigation and Autopilot"
+                        data-details="Modern aircraft navigate with incredible precision using a combination of technologies. The Inertial Reference System (IRS) tracks the plane's position without any external signals. GPS provides highly accurate location data from satellites. These systems feed data into the Flight Management System (FMS), which pilots use to program the flight path. The autopilot can then fly the plane along this pre-determined route, managing heading, altitude, and speed with remarkable accuracy, greatly reducing pilot workload."
+                        data-image="https://i.ytimg.com/vi/qGR0ZKE1di8/maxresdefault.jpg?sqp=-oaymwEmCIAKENAF8quKqQMa8AEB-AH-CYAC0AWKAgwIABABGH8gRygiMA8=&rs=AOn4CLC9ty8qPh7-PT-js5-d5rAb4_7Zbw"
+                        data-links="[{&quot;text&quot;:&quot;How Does Autopilot Work? - Scientific American&quot;,&quot;url&quot;:&quot;https://www.scientificamerican.com/article/how-does-the-autopilot-o/&quot;}]">
+                        <div class="window-content">
+                            <h3 class="text-2xl font-bold mb-4">Navigation and Autopilot</h3>
+                            <p class="text-sm md:text-base">Planes navigate using a mix of GPS and inertial guidance systems. The autopilot system can then use this data to fly the plane along a pre-programmed route, controlling heading, altitude, and speed, greatly reducing pilot workload on long flights.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="relative snap-section">
+                    <div class="plane-window"
+                        data-title="Types of Commercial Aircraft"
+                        data-details="Commercial aircraft are broadly categorized by size and range. Narrow-body jets, like the Boeing 737 and Airbus A320, have a single aisle for short to medium-haul flights. Wide-body jets, such as the Boeing 777 or Airbus A350, have two aisles for long-haul international routes. Regional jets, like the Embraer E-Jet family, are smaller and connect smaller cities to major hubs. Then there are giants like the Boeing 747 and Airbus A380, designed for high-capacity routes between the world's busiest airports."
+                        data-image="https://www.vliegles.nl/images/thumbnails/product_image-3285-576x324.jpg"
+                        data-links="[{&quot;text&quot;:&quot;Guide to Aircraft Types - AeroTime&quot;,&quot;url&quot;:&quot;https://www.aerotime.aero/articles/25076-a-complete-guide-to-all-commercial-aircraft-types&quot;}]">
+                        <div class="window-content">
+                            <h3 class="text-2xl font-bold mb-4">Types of Aircraft</h3>
+                            <p class="text-sm md:text-base">Aircraft are designed for specific jobs. Narrow-body jets handle domestic routes. Wide-body jets cross oceans. Smaller regional jets connect secondary cities, creating a vast and interconnected global network.</p>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="relative snap-section">
+                    <div class="plane-window"
+                        data-title="The Future of Aviation"
+                        data-details="The future of aviation is focused on sustainability and efficiency. Manufacturers are developing electric and hydrogen-powered aircraft to eliminate carbon emissions. Sustainable Aviation Fuel (SAF), made from renewable sources, is already being used to reduce the carbon footprint of current jets. Furthermore, advancements in AI and data analytics are creating more efficient flight paths to save fuel, and research into new materials and aerodynamic designs promises even lighter and more streamlined aircraft."
+                        data-image="data:image/jpeg;base64,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"
+                        data-links="[{&quot;text&quot;:&quot;The Future of Flight - NASA&quot;,&quot;url&quot;:&quot;https://www.nasa.gov/subject/16869/sustainable-aviation/&quot;}]">
+                        <div class="window-content">
+                            <h3 class="text-2xl font-bold mb-4">The Future of Aviation</h3>
+                            <p class="text-sm md:text-base">The next era of flight is all about sustainability. Engineers are exploring electric planes, hydrogen fuel, and advanced biofuels to create a greener way to fly. Lighter materials and smarter, AI-driven flight paths will also make air travel more efficient and eco-friendly.</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Section: Interactive Door -->
+                <section id="door-section" class="relative min-h-screen snap-section flex items-center justify-center">
+                    <div id="door">
+                        <div class="door-placard" style="top: 20px; left: 20px; background: #c0392b; color: white;">Warning</div>
+                        <div class="door-window mb-8"></div>
+                        <p class="text-2xl font-bold text-gray-700">About Us</p>
+                        <p class="text-sm text-gray-500">(Click to Open)</p>
+                        <div class="door-placard" style="bottom: 20px; right: 20px;">Emergency Exit</div>
+                    </div>
+                    <div id="about-us-content">
+                        <h2 class="text-3xl font-bold mb-4">Our Mission</h2>
+                        <p class="mb-6">This project is a celebration of human achievement in aviation, designed to provide a unique and interactive journey through the skies of knowledge. We believe learning should be an adventure.</p>
+                        <h3 class="text-xl font-semibold mb-2">Privacy Policy</h3>
+                        <p class="text-sm text-gray-600">We respect your privacy. The name you enter is used only for the welcome message during your session and is not stored or shared. This site uses no cookies for tracking.</p>
+                        <button id="close-door-button" class="mt-6 w-full py-2 px-4 rounded-md text-white bg-gray-600 hover:bg-gray-700">Close Door</button>
+                    </div>
+                </section>
+
+                <!-- Section: Cockpit / HUD -->
+                <section id="cockpit-section" class="min-h-screen flex items-center justify-center text-center p-8 snap-section">
+                    <div id="hud-container">
+                        <div class="hud-display">
+                            <h2 class="text-4xl font-bold hud-item">FLIGHT DECK</h2>
+                            <p class="text-lg hud-item">(CLICK TO ENGAGE POV)</p>
+                            <div class="artificial-horizon"></div>
+                            <div class="grid grid-cols-2 gap-x-8 gap-y-4 mt-8 text-left">
+                                <p class="hud-item text-xl">ALT: <span class="font-bold">350 FT</span></p>
+                                <p class="hud-item text-xl text-right">HDG: <span class="font-bold">270°</span></p>
+                                <p class="hud-item text-xl">SPD: <span class="font-bold">0 KTS</span></p>
+                                <p class="hud-item text-xl text-right">VS: <span class="font-bold">0 FT/M</span></p>
+                            </div>
+                            <div class="mt-8">
+                                 <p class="text-lg hud-item"><span class="font-semibold">Pilot:</span> Rhythm</p>
+                                 <p class="text-lg hud-item"><span class="font-semibold">Co-Pilot:</span> Gemini AI</p>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Footer Section -->
+                <footer class="text-center p-10 bg-gray-800 text-gray-400">
+                    <p>&copy; 2024 FlightDeck Experience. All rights reserved.</p>
+                </footer>
+
+            </div>
+        </div>
+    </div>
+    
+    <!-- Flight Progress Indicator - MOVED OUTSIDE of page-wrapper -->
+    <div id="flight-progress-container" style="visibility: hidden;">
+        <!-- New top-down plane icon -->
+        <svg id="progress-plane" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/>
+        </svg>
+        <!-- New, more detailed airport destination icon -->
+        <div id="airport-icon">
+            <!-- REPLACE THE 'src' BELOW WITH THE PATH TO YOUR OWN IMAGE -->
+            <img src=" https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcRp_IySogDFBZdH1TjnPWK55OlhSSGRWLpC-Q&s" alt="Airport Icon" style="width: 40px; height: 40px;">
+        </div>
+    </div>
+
+    <!-- Container for the zoom-in window and its overlay -->
+    <div id="modal-overlay"></div>
+    <div id="zoom-window-container">
+        <div id="zoom-window">
+            <img id="zoom-window-image" src="" alt="Aviation Topic Image">
+            <div id="zoom-content-wrapper">
+                <button id="close-zoom-window">&times;</button>
+                <div id="zoom-content">
+                    <h2 id="zoom-title" class="text-3xl font-bold mb-4 text-cyan-300"></h2>
+                    <p id="zoom-details" class="mb-6"></p>
+                    <div id="zoom-links"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const pageWrapper = document.getElementById('page-wrapper');
+            const boardButton = document.getElementById('board-button');
+            const entryGate = document.getElementById('entry-gate');
+            const mainContent = document.getElementById('main-content');
+            const airplaneFuselage = document.getElementById('airplane-fuselage');
+
+            const usernameInput = document.getElementById('username');
+            const welcomeText = document.getElementById('welcome-text');
+
+            const door = document.getElementById('door');
+            const doorSection = document.getElementById('door-section');
+            const closeDoorButton = document.getElementById('close-door-button');
+            const flightProgressContainer = document.getElementById('flight-progress-container');
+            const progressPlane = document.getElementById('progress-plane');
+            const modalOverlay = document.getElementById('modal-overlay');
+
+            // --- New Zoom Window elements ---
+            const zoomWindow = document.getElementById('zoom-window');
+            const zoomImage = document.getElementById('zoom-window-image');
+            const closeZoomWindow = document.getElementById('close-zoom-window');
+            let lastClickedWindow = null; 
+            
+            // --- Reworked HUD elements ---
+            const cockpitSection = document.getElementById('cockpit-section');
+ 
+            // --- Boarding Process ---
+            boardButton.addEventListener('click', () => {
+                const username = usernameInput.value.trim();
+
+                if (username === '') {
+                    const prevAlert = document.getElementById('custom-alert');
+                    if (prevAlert) prevAlert.remove();
+
+                    const alertDiv = document.createElement('div');
+                    alertDiv.id = 'custom-alert';
+                    alertDiv.style.cssText = 'position: absolute; top: 20px; left: 50%; transform: translateX(-50%); background: #f8d7da; color: #721c24; padding: 10px 20px; border-radius: 8px; border: 1px solid #f5c6cb;';
+                    alertDiv.innerText = 'Please enter your name to board.';
+                    entryGate.querySelector('.w-full').appendChild(alertDiv);
+                    setTimeout(() => alertDiv.remove(), 3000);
+                    return;
+                }
+                
+                welcomeText.textContent = `Welcome, ${username}!`;
+
+                entryGate.style.top = '-100vh';
+                /* REMOVED: This was part of the old animation that broke scrolling */
+                // airplaneFuselage.style.top = '0'; 
+                mainContent.style.visibility = 'visible';
+                flightProgressContainer.style.visibility = 'visible';
+                document.body.style.overflow = 'visible';
+                pageWrapper.style.overflow = 'visible';
+            });
+
+            // --- Door Interaction ---
+            door.addEventListener('click', () => {
+                door.classList.add('open');
+                doorSection.classList.add('reveal');
+            });
+            
+            closeDoorButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent door click from firing again
+                door.classList.remove('open');
+                doorSection.classList.remove('reveal');
+            });
+
+
+            // --- Intersection Observer for window animations ---
+            const animatedElements = document.querySelectorAll('.plane-window, #door');
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                threshold: 0.4 
+            });
+
+            animatedElements.forEach(el => observer.observe(el));
+
+            // --- Reworked Modal Interaction to be a Zoom Effect ---
+            const planeWindows = document.querySelectorAll('.plane-window');
+            
+            function openZoomView(windowEl) {
+                lastClickedWindow = windowEl;
+                const { top, left, width, height } = windowEl.getBoundingClientRect();
+                const title = windowEl.dataset.title;
+                const details = windowEl.dataset.details;
+                const image = windowEl.dataset.image;
+                const links = JSON.parse(windowEl.dataset.links || '[]');
+
+                // Populate content
+                document.getElementById('zoom-title').textContent = title;
+                document.getElementById('zoom-details').textContent = details;
+                zoomImage.src = image;
+                
+                const linksContainer = document.getElementById('zoom-links');
+                linksContainer.innerHTML = '';
+                if (links && links.length > 0) {
+                    const linksTitle = document.createElement('h4');
+                    linksTitle.className = 'text-lg font-bold mb-2';
+                    linksTitle.textContent = 'Read More:';
+                    linksContainer.appendChild(linksTitle);
+                    links.forEach(link => {
+                        const a = document.createElement('a');
+                        a.href = link.url;
+                        a.textContent = link.text;
+                        a.target = '_blank';
+                        a.className = 'block text-cyan-400 hover:underline mb-2';
+                        linksContainer.appendChild(a);
+                    });
+                }
+                
+                windowEl.querySelector('.window-content').style.opacity = '0';
+                
+                zoomWindow.style.transition = 'none';
+                zoomWindow.style.top = `${top}px`;
+                zoomWindow.style.left = `${left}px`;
+                zoomWindow.style.width = `${width}px`;
+                zoomWindow.style.height = `${height}px`;
+                zoomWindow.style.borderRadius = '40px 40px 80px 80px / 40px 40px 60px 60px';
+
+                modalOverlay.classList.add('visible');
+                
+                requestAnimationFrame(() => {
+                    zoomWindow.style.transition = `
+                        top 0.6s cubic-bezier(0.645, 0.045, 0.355, 1),
+                        left 0.6s cubic-bezier(0.645, 0.045, 0.355, 1),
+                        width 0.6s cubic-bezier(0.645, 0.045, 0.355, 1),
+                        height 0.6s cubic-bezier(0.645, 0.045, 0.355, 1),
+                        border-radius 0.6s cubic-bezier(0.645, 0.045, 0.355, 1),
+                        opacity 0.3s ease`;
+
+                    zoomWindow.classList.add('visible');
+                    
+                    const targetWidth = Math.min(800, window.innerWidth * 0.9);
+                    const targetHeight = Math.min(600, window.innerHeight * 0.85);
+
+                    zoomWindow.style.top = `calc(50% - ${targetHeight / 2}px)`;
+                    zoomWindow.style.left = `calc(50% - ${targetWidth / 2}px)`;
+                    zoomWindow.style.width = `${targetWidth}px`;
+                    zoomWindow.style.height = `${targetHeight}px`;
+                    zoomWindow.style.borderRadius = '20px';
+                    zoomWindow.classList.add('content-visible');
+                });
+                
+                document.addEventListener('keydown', handleEscKey);
+                mainContent.style.overflow = 'hidden';
+            }
+
+            function closeZoomView() {
+                if (!lastClickedWindow) return;
+
+                const { top, left, width, height } = lastClickedWindow.getBoundingClientRect();
+
+                modalOverlay.classList.remove('visible');
+                zoomWindow.classList.remove('content-visible');
+
+                zoomWindow.style.top = `${top}px`;
+                zoomWindow.style.left = `${left}px`;
+                zoomWindow.style.width = `${width}px`;
+                zoomWindow.style.height = `${height}px`;
+                zoomWindow.style.borderRadius = '40px 40px 80px 80px / 40px 40px 60px 60px';
+
+                setTimeout(() => {
+                    zoomWindow.classList.remove('visible');
+                    if (lastClickedWindow) {
+                        lastClickedWindow.querySelector('.window-content').style.opacity = '1';
+                    }
+                    lastClickedWindow = null;
+                }, 600); 
+
+                document.removeEventListener('keydown', handleEscKey);
+                mainContent.style.overflow = 'scroll';
+            }
+
+            function handleEscKey(e) {
+                if (e.key === 'Escape') {
+                    if (cockpitSection.classList.contains('pov-active')) {
+                        cockpitSection.classList.remove('pov-active');
+                    } else if (zoomWindow.classList.contains('visible')) {
+                        closeZoomView();
+                    }
+                }
+            }
+            
+            // --- HUD POV Interaction ---
+            cockpitSection.addEventListener('click', () => {
+                cockpitSection.classList.toggle('pov-active');
+            });
+            
+            // Add global escape key listener
+            document.addEventListener('keydown', handleEscKey);
+
+
+            planeWindows.forEach(windowEl => {
+                windowEl.addEventListener('click', () => {
+                    openZoomView(windowEl);
+                });
+            });
+
+            closeZoomWindow.addEventListener('click', closeZoomView);
+            modalOverlay.addEventListener('click', closeZoomView);
+
+
+            // --- Scroll-based Progress Plane --
+            mainContent.addEventListener('scroll', () => {
+                const scrollableHeight = mainContent.scrollHeight - mainContent.clientHeight;
+                const scrollTop = mainContent.scrollTop;
+                if (scrollableHeight > 0) {
+                    const progress = (scrollTop / scrollableHeight) * 100;
+                    const progressBarHeight = flightProgressContainer.clientHeight;
+                    const planePosition = (progress / 100) * progressBarHeight;
+                    progressPlane.style.top = `${Math.min(progressBarHeight, Math.max(0, planePosition))}px`;
+                }
+            });
+
+            // --- Parallax Mouse Move Effect (REMOVED) ---
+            // This effect was causing rendering conflicts with the fixed-position scrollbar.
+            // It has been removed to ensure the scrollbar functionality is stable and smooth.
+            
+            window.addEventListener('mousemove', (e) => {
+                if (mainContent.style.visibility === 'visible') {
+                    const { clientX, clientY } = e;
+                    const { innerWidth, innerHeight } = window;
+                    const xOffset = (clientX / innerWidth - 0.5) * 3;
+                    const yOffset = (clientY / innerHeight - 0.5) * 3;
+                    
+                    airplaneFuselage.style.transform = `translateX(${xOffset * 15}px) translateY(${yOffset * 10}px)`;
+                }
+            });
+            
+
+        });
+    </script>
+</body>
+</html>
+
